@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>寻缘雷达 MatchRadar · 免费相亲数据检索统计、再检索与双向匹配平台 | 从简Clarvy</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">缘</div>
+        <div>
+          <h1 class="brand-title">
+            寻缘雷达 <span class="brand-sub">MatchRadar V2.0</span>
+            <span class="free-pill">免费开放平台</span>
+          </h1>
+          <p class="brand-desc">公开相亲数据汇聚 · 多维数据再检索 · 用户链接补录 · 双向择偶核验（检索统计全免费，仅调用本平台 AI 模型按实际消耗 Token 计费）</p>
+        </div>
+      </div>
+      <div class="topbar-meta">
+        <span id="syncBadge" class="status-pill">正在加载公开快照…</span>
+        <a class="btn btn-outline btn-sm" href="https://claudeai.chat" target="_blank" rel="noopener noreferrer">从简Clarvy 主站 ↗</a>
+        <button type="button" id="exportCsvTopBtn" class="btn btn-outline btn-sm">导出当前清单 CSV</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav-tabs-wrap">
+    <div class="container nav-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="match" role="tab" aria-selected="true">
+        01 智能双向匹配 <span id="tabCountMatch" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="retrieve" role="tab" aria-selected="false">
+        02 数据再检索 <span id="tabCountTotal" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="supplement" role="tab" aria-selected="false">
+        03 链接补录与AI提取 <span id="tabCountUserSup" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="stats" role="tab" aria-selected="false">
+        04 市场统计看板
+      </button>
+      <button class="tab-btn" data-tab="schedule" role="tab" aria-selected="false">
+        05 定时源与合规审计 <span id="tabCountSources" class="tab-badge">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="container main-content">
+    <div id="globalToast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <!-- ==================== TAB 1: 智能双向匹配 ==================== -->
+    <section id="panel-match" class="tab-panel active">
+      <div class="kpi-strip" id="matchKpiStrip"></div>
+
+      <details class="card profile-config-card" id="profileDetails">
+        <summary class="profile-summary">
+          <div>
+            <strong>我的个人画像与择偶偏好（仅保存在您当前浏览器本地，不上传公开库）</strong>
+            <span class="muted-inline" id="profileQuickSummary">正在读取配置…</span>
+          </div>
+          <span class="summary-toggle-hint">展开设置 · 修改即实时重算双向匹配分</span>
+        </summary>
+        <form id="profileForm" class="profile-form-grid">
+          <div class="profile-col">
+            <h3 class="sec-subtitle">① 我的自身条件（用于反向核验我是否达到对方的「择偶要求」）</h3>
+            <div class="field-grid-3">
+              <label>我的性别
+                <select name="my_gender">
+                  <option value="M">男</option>
+                  <option value="F">女</option>
+                </select>
+              </label>
+              <label>出生年份
+                <input type="number" name="my_birth_year" min="1955" max="2008" required />
+              </label>
+              <label>我的身高 (cm)
+                <input type="number" name="my_height_cm" min="145" max="210" required />
+              </label>
+              <label>我的最高学历
+                <select name="my_edu_level">
+                  <option value="2">大专</option>
+                  <option value="3">本科</option>
+                  <option value="4">硕士</option>
+                  <option value="5">博士</option>
+                  <option value="1">高中及以下</option>
+                </select>
+              </label>
+              <label>所在城市
+                <input type="text" name="my_city" placeholder="如：杭州 / 上海" />
+              </label>
+              <label>婚姻状况
+                <select name="my_marital">
+                  <option value="未婚">未婚</option>
+                  <option value="离异未育">离异未育</option>
+                  <option value="离异">离异</option>
+                </select>
+              </label>
+              <label>名下购房
+                <select name="my_has_house">
+                  <option value="1">已购房</option>
+                  <option value="0">暂未购房</option>
+                </select>
+              </label>
+              <label>是否体制内/编制
+                <select name="my_is_tizhi">
+                  <option value="0">企业/自由职业</option>
+                  <option value="1">公务员/事业编/国企/高校</option>
+                </select>
+              </label>
+              <label>年收入(万元)
+                <input type="number" step="0.5" name="my_income_wan" min="0" max="500" />
+              </label>
+            </div>
+          </div>
+
+          <div class="profile-col">
+            <h3 class="sec-subtitle">② 我寻找的潜在对象条件（用于计算「正向合意分」）</h3>
+            <div class="field-grid-3">
+              <label>寻找性别
+                <select name="target_gender">
+                  <option value="F">女嘉宾</option>
+                  <option value="M">男嘉宾</option>
+                  <option value="">不限</option>
+                </select>
+              </label>
+              <label>期望最小年龄
+                <input type="number" name="pref_age_min" min="18" max="70" />
+              </label>
+              <label>期望最大年龄
+                <input type="number" name="pref_age_max" min="18" max="75" />
+              </label>
+              <label>期望最低身高(cm)
+                <input type="number" name="pref_height_min" min="140" max="205" />
+              </label>
+              <label>期望最高身高(cm)
+                <input type="number" name="pref_height_max" min="145" max="215" />
+              </label>
+              <label>期望最低学历
+                <select name="pref_edu_min">
+                  <option value="0">不限学历</option>
+                  <option value="2">大专及以上</option>
+                  <option value="3">本科及以上</option>
+                  <option value="4">硕士及以上</option>
+                </select>
+              </label>
+              <label>意向城市(留空不限)
+                <input type="text" name="pref_city" placeholder="留空看全国，或填如：杭州" />
+              </label>
+              <label>婚况偏好
+                <select name="pref_only_unmarried">
+                  <option value="1">优先未婚</option>
+                  <option value="0">婚况不限</option>
+                </select>
+              </label>
+              <label>加分偏好词(逗号分隔)
+                <input type="text" name="pref_keywords" placeholder="温柔,运动,教师,稳定" />
+              </label>
+            </div>
+            <div class="form-actions-row">
+              <span class="formula-note">双向综合指数 = <strong>0.55 × 正向合意分 + 0.45 × 反向达标分</strong></span>
+              <div style="display:flex;gap:8px;">
+                <button type="button" id="resetProfileBtn" class="btn btn-outline btn-sm">恢复默认画像</button>
+                <button type="submit" class="btn btn-primary">保存画像并重算匹配度</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </details>
+
+      <div class="card filter-toolbar">
+        <div class="mode-pills" id="modePills" role="group" aria-label="匹配筛选模式">
+          <button type="button" class="pill active" data-mode="compatible">全部性别匹配</button>
+          <button type="button" class="pill" data-mode="mutual_high">双向高匹配 (≥80)</button>
+          <button type="button" class="pill" data-mode="forward_ok">合我心意 (正向≥75)</button>
+          <button type="button" class="pill" data-mode="no_warning">零反向门槛冲突</button>
+          <button type="button" class="pill" data-mode="starred">★ 重点收藏</button>
+          <button type="button" class="pill" data-mode="all_raw">全库浏览(含同性)</button>
+        </div>
+        <div class="filter-inputs">
+          <select id="cityFilterSelect" aria-label="按城市过滤">
+            <option value="">全部城市</option>
+          </select>
+          <select id="followFilterSelect" aria-label="按跟进状态过滤">
+            <option value="">全部跟进状态</option>
+            <option value="new">待筛选</option>
+            <option value="interested">重点关注</option>
+            <option value="contacted">已联系</option>
+            <option value="archived">暂不合适</option>
+          </select>
+          <input type="search" id="keywordSearchInput" placeholder="快捷搜索职业、高校、籍贯、爱好、要求…" />
+          <select id="sortSelect" aria-label="排序方式">
+            <option value="mutual_desc">按双向综合分从高到低</option>
+            <option value="forward_desc">按合我心意分从高到低</option>
+            <option value="reverse_desc">按对方门槛友好度排序</option>
+            <option value="age_asc">按年龄从年轻到成熟</option>
+            <option value="newest">按入库序号最新优先</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="candidateCountBar" class="result-meta-bar"></div>
+      <div id="candidateGrid" class="candidate-grid"></div>
+    </section>
+
+    <!-- ==================== TAB 2: 数据再检索中心 ==================== -->
+    <section id="panel-retrieve" class="tab-panel">
+      <div class="card" style="margin-bottom: 14px;">
+        <div class="card-header-flex">
+          <div>
+            <h2>多维组合「数据再检索」工作台</h2>
+            <p class="section-lead">支持对「全站公共基准库 + 您通过链接/文本补录的数据」做多条件交叉过滤、正反向布尔词检索、URL 检索式分享与表格对比导出（完全免费）。</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" id="copyQueryUrlBtn" class="btn btn-outline btn-sm">复制当前检索分享链接</button>
+            <button type="button" id="exportRetrieveCsvBtn" class="btn btn-primary btn-sm">导出再检索结果 CSV</button>
+          </div>
+        </div>
+
+        <form id="retrieveForm" class="retrieve-grid">
+          <label>检索性别
+            <select name="r_gender">
+              <option value="">全部性别</option>
+              <option value="F">仅女嘉宾</option>
+              <option value="M">仅男嘉宾</option>
+            </select>
+          </label>
+          <label>年龄下限 (岁)
+            <input type="number" name="r_age_min" placeholder="如 24" min="18" max="75" />
+          </label>
+          <label>年龄上限 (岁)
+            <input type="number" name="r_age_max" placeholder="如 35" min="18" max="75" />
+          </label>
+          <label>身高下限 (cm)
+            <input type="number" name="r_h_min" placeholder="如 160" min="140" max="210" />
+          </label>
+          <label>身高上限 (cm)
+            <input type="number" name="r_h_max" placeholder="如 188" min="140" max="215" />
+          </label>
+          <label>最低学历要求
+            <select name="r_edu_min">
+              <option value="0">不限学历</option>
+              <option value="2">大专及以上</option>
+              <option value="3">本科及以上</option>
+              <option value="4">硕士/博士专场</option>
+              <option value="5">仅博士</option>
+            </select>
+          </label>
+          <label>城市(多城用逗号或空格分隔)
+            <input type="text" name="r_cities" placeholder="如：杭州 上海 北京" />
+          </label>
+          <label>岗位属性
+            <select name="r_tizhi">
+              <option value="">不限岗位</option>
+              <option value="1">仅体制内/国企/高校/医疗</option>
+              <option value="0">市场化企业/自营</option>
+            </select>
+          </label>
+          <label>购房情况
+            <select name="r_house">
+              <option value="">不限房产</option>
+              <option value="1">明确已购房</option>
+            </select>
+          </label>
+          <label>婚姻状况
+            <select name="r_marital">
+              <option value="">不限婚况</option>
+              <option value="未婚">仅看未婚</option>
+              <option value="离异">离异</option>
+            </select>
+          </label>
+          <label>数据池来源范围
+            <select name="r_pool">
+              <option value="all">全量合并池 (公共库 + 我的补录)</option>
+              <option value="user_only">仅看我补录的数据</option>
+              <option value="public_only">仅看全站公共快照库</option>
+              <option value="shuobo_only">仅看硕士博士俱乐部归档源</option>
+            </select>
+          </label>
+          <label>结果呈现视图
+            <select name="r_view" id="retrieveViewMode">
+              <option value="table">高密度对比表格视图</option>
+              <option value="cards">详细卡片视图</option>
+            </select>
+          </label>
+          <label style="grid-column: span 2;">必须包含关键词 (多词同时满足，搜职业/学校/简介/要求)
+            <input type="text" name="r_inc" placeholder="如：教师 运动（空格分隔表示同时包含）" />
+          </label>
+          <label style="grid-column: span 2;">排除关键词 (出现任一词即剔除)
+            <input type="text" name="r_exc" placeholder="如：抽烟 夜场 异地" />
+          </label>
+          <div style="grid-column: span 2; display:flex; align-items:flex-end; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <label class="inline-check" style="margin-bottom:6px;">
+              <input type="checkbox" name="r_zero_warn" />
+              <span>仅保留满足对方硬性择偶门槛（零反向冲突）</span>
+            </label>
+            <div style="display:flex; gap:8px;">
+              <button type="button" id="resetRetrieveBtn" class="btn btn-outline btn-sm">清空再检索条件</button>
+              <button type="submit" class="btn btn-primary btn-sm">执行再检索</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div id="retrieveSummaryStrip" class="kpi-strip"></div>
+      <div id="retrieveResultContainer"></div>
+    </section>
+
+    <!-- ==================== TAB 3: 链接补录与 AI 模型提取 ==================== -->
+    <section id="panel-supplement" class="tab-panel">
+      <div class="card fee-banner-card">
+        <div class="fee-banner-title">💡 免费公益平台定位与透明计费说明（从简Clarvy · claudeai.chat）</div>
+        <p class="fee-banner-text">
+          1. <strong>平台功能完全免费</strong>：本站提供的公开相亲数据浏览、多维数据再检索、统计图表、双向匹配度计算，以及浏览器端规则解析补录<strong>永久免费开放</strong>，不收会员费、不收红娘中介费、不设付费解锁墙。<br />
+          2. <strong>仅模型调用按实际 Token 收费</strong>：当您面对跨域防爬的微信公众号链接、复杂非结构化推文或长篇图文，选择调用本平台（<a href="https://claudeai.chat" target="_blank" rel="noopener noreferrer">claudeai.chat</a>）AI 大模型辅助读取链接并做结构化提取时，仅收取您在平台调用模型实际消耗的 <strong>Token 费用</strong>，无任何额外加成。
+        </p>
+      </div>
+
+      <div class="import-layout" style="margin-top: 14px;">
+        <!-- 左栏：通过给链接补录数据 -->
+        <div class="stack-col">
+          <div class="card">
+            <h2>方式一：通过「提供链接」补录相亲数据</h2>
+            <p class="section-lead">
+              支持输入微信公众号推文链接（<code>mp.weixin.qq.com/s/...</code>）、搜狐号、网易号、知乎、地方红娘专栏等公开相亲信息 URL（可一次输入多条，每行一条）。
+            </p>
+            <form id="linkSupplementForm" class="stack-form">
+              <label>相亲信息网页链接（每行一条 URL）
+                <textarea name="urls" id="suppUrlsInput" rows="4" placeholder="https://mp.weixin.qq.com/s/...&#10;https://www.sohu.com/a/..." required></textarea>
+              </label>
+              <div class="field-grid-2">
+                <label>默认所属城市（选填）
+                  <input type="text" name="city_hint" id="suppUrlCityInput" placeholder="如：北京 / 深圳" />
+                </label>
+                <label>来源备注名称（选填）
+                  <input type="text" name="title_hint" id="suppUrlTitleInput" placeholder="如：硕博联谊最新期" />
+                </label>
+              </div>
+              <div class="btn-group-wrap">
+                <button type="submit" id="directFetchUrlBtn" class="btn btn-primary">
+                  ① 尝试在线直连抓取补录 (免 Token)
+                </button>
+                <button type="button" id="genClarvyPromptBtn" class="btn btn-accent-outline">
+                  ② 生成本平台模型提取指令 (按模型 Token 计费)
+                </button>
+                <button type="button" id="submitGithubIssueBtn" class="btn btn-outline btn-sm">
+                  ③ 提交链接至 GitHub 公共库共建 Issue
+                </button>
+              </div>
+            </form>
+
+            <div id="clarvyPromptBox" class="prompt-helper-box hidden">
+              <div class="card-header-flex" style="margin-bottom:6px;">
+                <strong>已为您生成「从简Clarvy」AI 模型结构化提取指令：</strong>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" id="copyPromptAgainBtn" class="btn btn-outline btn-sm">复制指令</button>
+                  <a href="https://claudeai.chat" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">前往 claudeai.chat 调用模型 ↗</a>
+                </div>
+              </div>
+              <p class="muted-small">操作只需两步：① 点击前往 <code>claudeai.chat</code> 粘贴下方指令发送（仅消耗该次对话模型 Token）；② 将模型返回的 <code>```json ... ```</code> 结果粘贴到右侧「粘贴文本或模型 JSON 补录框」，点击入库即可立即参与全站再检索与匹配！</p>
+              <textarea id="clarvyPromptOutput" rows="6" readonly></textarea>
+            </div>
+          </div>
+
+          <div class="card notice-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>我的补录数据包管理</h3>
+                <p class="section-lead" style="margin-bottom:0;">当前浏览器已补录 <strong id="userSupCountLabel">0</strong> 位嘉宾，已自动合并进「智能双向匹配」「数据再检索」与「统计看板」。</p>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" id="exportUserSupJsonBtn" class="btn btn-outline btn-sm">导出补录包 (.json)</button>
+                <label class="btn btn-outline btn-sm" style="margin:0;cursor:pointer;">
+                  导入补录包 (.json)
+                  <input type="file" id="importUserSupFile" accept=".json,application/json" style="display:none;" />
+                </label>
+                <button type="button" id="clearUserSupBtn" class="btn btn-outline btn-sm" style="color:var(--accent);">清空本地补录</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右栏：粘贴原文或模型输出 JSON 即时补录 -->
+        <div class="card">
+          <h2>方式二：粘贴公众号原文 / 模型提取 JSON 即时补录 (0 Token)</h2>
+          <p class="section-lead">
+            既可直接粘贴<strong>从简Clarvy 模型提取出的 JSON 数组</strong>，也可直接粘贴<strong>微信公众号合集正文（支持方糖·硕士博士俱乐部、搜狐/网易卡片、微信群接龙）</strong>。纯浏览器本地拆解并自动掩码脱敏手机号/微信号/身份证号，立即生效！
+          </p>
+          <form id="pasteImportForm" class="stack-form">
+            <div class="field-grid-3">
+              <label>来源标题/批次说明
+                <input type="text" name="source_title" placeholder="如：方糖硕博联谊 / 模型补录" required />
+              </label>
+              <label>来源渠道归类
+                <select name="source_platform">
+                  <option value="从简Clarvy模型提取补录">从简Clarvy模型提取补录</option>
+                  <option value="微信公众号粘贴补录">微信公众号粘贴补录</option>
+                  <option value="微信相亲群接龙">微信相亲群接龙</option>
+                  <option value="公开链接手动补录">公开链接手动补录</option>
+                </select>
+              </label>
+              <label>默认城市（可选）
+                <input type="text" name="city_hint" placeholder="如：上海" />
+              </label>
+            </div>
+            <label>对应原帖链接（选填，保留溯源）
+              <input type="url" name="source_url" placeholder="https://mp.weixin.qq.com/s/..." />
+            </label>
+            <label>粘贴嘉宾正文 或 模型返回的 JSON 代码块
+              <textarea name="raw_text" id="pasteRawTextarea" rows="11" placeholder="可直接粘贴：&#10;• 从简Clarvy 模型输出的 ```json [ ... ] ```&#10;• 方糖·硕士博士俱乐部格式（序号 + 昵称 + 学校 + 专业 + 关于我 + 希望你）&#10;• 01号女嘉宾 / ①号男嘉宾 / Love.01 等多行卡片" required></textarea>
+            </label>
+            <div class="form-actions-row">
+              <button type="button" id="fillDemoTextBtn" class="btn btn-outline btn-sm">填入「方糖·硕士博士俱乐部」格式测试样例</button>
+              <button type="submit" class="btn btn-primary">解析脱敏并立即并入检索库</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: 市场统计看板 ==================== -->
+    <section id="panel-stats" class="tab-panel">
+      <div class="kpi-strip" id="statsKpiStrip"></div>
+      <div class="charts-grid">
+        <article class="card chart-card">
+          <div class="chart-head">
+            <h3>出生年代与男女样本结构</h3>
+            <span class="chart-sub">合并公共快照与用户补录样本（单位：人）</span>
+          </div>
+          <div id="chartAgeCohort" class="svg-stage"></div>
+        </article>
+
+        <article class="card chart-card">
+          <div class="chart-head">
+            <h3>身高分布 vs 女嘉宾最低身高门槛对照</h3>
+            <span class="chart-sub">直观对比男嘉宾实际身高分布与女嘉宾择偶最低身高要求</span>
+          </div>
+          <div id="chartHeightMismatch" class="svg-stage"></div>
+        </article>
+
+        <article class="card chart-card">
+          <div class="chart-head">
+            <h3>学历层次结构分布</h3>
+            <span class="chart-sub">按博士/硕士/本科/大专归一化统计</span>
+          </div>
+          <div id="chartEducation" class="svg-stage"></div>
+        </article>
+
+        <article class="card chart-card">
+          <div class="chart-head">
+            <h3>择偶要求高频关注维度 & 样本城市分布</h3>
+            <span class="chart-sub">自动从嘉宾「择偶要求」原文抽取统计</span>
+          </div>
+          <div id="chartReqAndCity" class="svg-stage"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: 定时搜集与合规日志 ==================== -->
+    <section id="panel-schedule" class="tab-panel">
+      <div class="card" style="margin-bottom: 14px;">
+        <div class="card-header-flex">
+          <div>
+            <h2>定时自动更新机制与运行模式说明</h2>
+            <p class="section-lead" id="runtimeModeBanner">
+              正在检测当前运行环境…
+            </p>
+          </div>
+          <div id="localScheduleActions" class="hidden">
+            <button type="button" id="runAllSourcesBtn" class="btn btn-primary btn-sm">本地容器：立即运行一轮采集</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 14px;">
+        <h3>已登记的公开数据源状态清单（失败保留最后成功快照，遇反爬/验证码如实标注 blocked）</h3>
+        <div class="table-scroll">
+          <table class="data-table" id="sourcesTable">
+            <thead>
+              <tr>
+                <th>数据源名称</th>
+                <th>通道类型</th>
+                <th>城市</th>
+                <th>状态</th>
+                <th>最近尝试 / 最近成功</th>
+                <th>识别人数 / SHA-256</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>最近自动采集与校验审计流水</h3>
+        <div class="table-scroll">
+          <table class="data-table" id="logsTable">
+            <thead>
+              <tr>
+                <th>执行时间 (UTC+8)</th>
+                <th>任务名称</th>
+                <th>通道</th>
+                <th>结果</th>
+                <th>新增 / 更新</th>
+                <th>核验详情与受阻说明</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <strong>从简Clarvy · <a href="https://claudeai.chat" target="_blank" rel="noopener noreferrer" style="color:inherit;">claudeai.chat</a></strong>
+        — 一站式 AI 工作台 ｜ 寻缘雷达公开检索与匹配完全免费，仅调用本平台模型按实际消耗 Token 计费
+      </div>
+      <div>
+        合规与隐私声明：严守 robots/反爬边界，不绕过登录墙或验证码，所有入库文本均自动掩码脱敏私人联系方式
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
